@@ -183,18 +183,18 @@ namespace Dilo.Tests
     }
 
 
-    public static (string expr, int solutions)[] GuessProblems { get; } =
+    public static (string expr, int solutions, int depth)[] GuessProblems { get; } =
     {
-      ("3a-2b+c+5=0\n6a-4b+2c+9=0", 0),
-      ("3a-2b-c+3=0\n6a-4b+c+3=0", 3)
+      ("3a-2b+c+5=0\n6a-4b+2c+9=0", 0, 10),
+      ("3a-2b-c+3=0\n6a-4b+c+3=0", 683, 10)
     };
 
     [Test]
-    public void ProvidedExamples([ValueSource(nameof(GuessProblems))](string expr, int solutions) ite)
+    public void ProvidedExamples([ValueSource(nameof(GuessProblems))](string expr, int solutions, int depth) ite)
     {
       var exprs = StateMachine.Create(Expr.Parse(ite.expr));
 
-      var solution = exprs.Solutions();
+      var solution = exprs.Solutions(ite.depth);
 
       Assert.AreEqual(ite.solutions, solution.Count());
     }
