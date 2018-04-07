@@ -15,38 +15,47 @@ namespace Dilo
       State = state;
     }
 
-    public IEnumerable<Dictionary<string, int>> Solutions()
+    public IEnumerable<string> Solutions(int depth = 10)
     {
-      var traversed = new HashSet<State>();
-      IEnumerable<IEnumerable<int>> InputSolutions(State state)
+      var viable = new Stack<int>();
+      var found = new HashSet<string>();
+      IEnumerable<string> InputSolutions(State state)
       {
         if (state.Accepting)
         {
-          return new[] {Enumerable.Empty<int>()};
-        }
-        if (traversed.Contains(state))
-        {
-          return Enumerable.Empty<IEnumerable<int>>();
-        }
-        traversed.Add(state);
+          var mapped = _inputPositionMap.ToDictionary(kvp => kvp.Key, kvp =>
+            (from input in viable.Reverse().Zip(InfiniteLoop(0), (val, index) => (Val: val, Index: index))
+              let bitPosition = kvp.Value
+              let bit = ((input.Val >> bitPosition) & 1) << input.Index
+              select bit).Sum()
+          );
 
-        return
-          from transition in state.Transitions
-          from set in InputSolutions(transition.Value)
-          select new[] {transition.Key}.Concat(set);
+          var stringEncoded =
+            string.Join(",", mapped.OrderBy(ite => ite.Key).Select(kvp => $"{kvp.Key}:{kvp.Value}"));
+
+          if (found.Add(stringEncoded))
+          {
+            yield return stringEncoded;
+          }
+        }
+
+        if (viable.Count > depth)
+        {
+          yield break;
+        }
+
+        foreach (var transition in state.Transitions)
+        {
+          viable.Push(transition.Key);
+          foreach (var subResult in InputSolutions(transition.Value))
+          {
+            yield return subResult;
+          }
+          viable.Pop();
+        }
       }
 
-      var foundSolutions = InputSolutions(State).ToList();
-
-      return
-        from viable in foundSolutions
-        let mapped = _inputPositionMap.ToDictionary(kvp => kvp.Key, kvp =>
-          (from input in viable.Zip(InfiniteLoop(0), (val, index) => (Val: val, Index: index))
-            let bitPosition = kvp.Value
-            let bit = ((input.Val >> bitPosition) & 1) << input.Index
-            select bit).Sum()
-        )
-        select mapped;
+      return InputSolutions(State);
     }
 
 
